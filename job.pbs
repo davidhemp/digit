@@ -1,17 +1,17 @@
 #!/bin/bash
 #PBS -l walltime=1:0:0
-#PBS -lselect=1:ncpus=4:mem=24gb:ngpus=2:gpu_type=RTX6000
+#PBS -lselect=1:ncpus=4:mem=24gb:ngpus=1:gpu_type=RTX6000
 #PBS -q pqsystems
-#PBS -e ./job-logs/
 #PBS -o ./job-logs/
+#PBS -j oe
 
-module load tools/prod > /dev/null 
-module load TensorFlow/2.8.4-foss-2021b > /dev/null
+module load tools/prod 2> /dev/null
+module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1 2> /dev/null
 
 cd $PBS_O_WORKDIR
 
-echo $HOSTNAME
-echo $CUDA_VISIBLE_DEVICES
+echo "Running on: $HOSTNAME"
+echo "Allocated device: $CUDA_VISIBLE_DEVICES"
 
-nvidia-smi
 ./test-gpu.py
+./main.py
