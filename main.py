@@ -12,7 +12,7 @@ def load_images(filename: str, num_images: int) -> np.ndarray:
     return data
 
 def load_labels(filename: str, num_labels: int) -> np.ndarray:
-    with gzip.open("MNIST_data/t10k-labels-idx1-ubyte.gz", 'r') as f:
+    with gzip.open(filename, 'r') as f:
         f.read(8)
         buffer = f.read(num_labels)
         labels = np.frombuffer(buffer,  dtype=np.uint8).astype(np.float32)
@@ -26,6 +26,10 @@ def ascii_image(image: np.ndarray, label: np.float32):
 test_images = load_images("MNIST_data/t10k-images-idx3-ubyte.gz", 10000)
 test_labels = load_labels("MNIST_data/t10k-labels-idx1-ubyte.gz", 10000)
 
-idx = 100
+test_images = load_images("MNIST_data/train-images-idx3-ubyte.gz", 10000)
+test_labels = load_labels("MNIST_data/train-labels-idx1-ubyte.gz", 10000)
+
+idx = 666
+ascii_image(test_images[idx], test_labels[idx])
 ascii_image(test_images[idx], test_labels[idx])
 
