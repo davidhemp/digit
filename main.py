@@ -2,7 +2,7 @@
 import gzip
 import numpy as np
 
-def load_images(filename, num_images):
+def load_images(filename: str, num_images: int) -> np.ndarray:
     with gzip.open(filename, 'r') as f:
         image_size = 28
         f.read(16)
@@ -11,14 +11,14 @@ def load_images(filename, num_images):
         data =  data.reshape(num_images, image_size, image_size, 1)
     return data
 
-def load_labels(filename, num_labels):
+def load_labels(filename: str, num_labels: int) -> np.ndarray:
     with gzip.open("MNIST_data/t10k-labels-idx1-ubyte.gz", 'r') as f:
         f.read(8)
         buffer = f.read(num_labels)
         labels = np.frombuffer(buffer,  dtype=np.uint8).astype(np.float32)
     return labels
 
-def ascii_image(image, label):
+def ascii_image(image: np.ndarray, label: np.float32):
     print(f"Image labeled as {label}")
     for line in image:
         print("".join([ "{:03d}".format(int(i)) for i in line]))
