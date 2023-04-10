@@ -34,7 +34,7 @@ print(f"One Hot of image: {train_truth.T[idx]}")
 
 n_input = train_data.shape[0]
 n_samples = train_data.shape[1]
-n_hidden = 10
+n_hidden = 128
 n_output = 10
 
 #Activation functions
