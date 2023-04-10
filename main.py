@@ -1,6 +1,8 @@
 #!/bin/env python3
 import gzip
+import pickle
 import numpy as np
+
 from data_loader import load_images, load_labels, ascii_image
 
 #Load data and split into train, test, and validation"
@@ -11,13 +13,14 @@ train_images = load_images("MNIST_data/train-images-idx3-ubyte.gz", 60000)
 train_labels = load_labels("MNIST_data/train-labels-idx1-ubyte.gz", 60000)
 
 #print one image from each set to show it is working
-idx = 666
+idx = 123
 ascii_image(train_images[idx], train_labels[idx])
 
 #Transpose the image so each column is now an image. 
 #Or to say another way, each row is now a single pixel with a value for each image
 #Data is also normalised to stop exp overflow
 train_data = train_images.T/255
+test_data = test_images.T/255
 
 #Convert a label to an array where the index matching the label is 1, all else are 0
 #I have used enumerate to remind me what this is doing, assignment would be faster
@@ -25,7 +28,7 @@ train_truth = np.zeros((train_labels.size, 10))
 for i, label in enumerate(train_labels):
     train_truth[i, int(label)] = 1
 train_truth = train_truth.T
-print(f"One Hot y: {train_truth.T[idx]}")
+print(f"One Hot of image: {train_truth.T[idx]}")
 
 #Define NN layers
 
@@ -50,16 +53,24 @@ def softmax(x):
 
 # Generate init values for layers
 
-weights_1 = np.random.rand(n_hidden, n_input) - 0.5
-bias_1 = np.random.rand(n_hidden, n_samples) - 0.5
+try:
+    with open('params.pkl', 'rb') as f:
+        params = pickle.load(f)
+except FileNotFoundError:
+    weights_1 = np.random.rand(n_hidden, n_input) - 0.5
+    bias_1 = np.random.rand(n_hidden, 1) - 0.5
 
-weights_2 = np.random.randn(n_output, n_output) - 0.5
-bias_2 = np.random.randn(n_output, n_samples) - 0.5
-#Putting values into a list just for management
-params = [weights_1, bias_1, weights_2, bias_2]
+    weights_2 = np.random.randn(n_output, n_output) - 0.5
+    bias_2 = np.random.randn(n_output, 1) - 0.5
+    #Putting values into a list just for management
+    params = [weights_1, bias_1, weights_2, bias_2]
+
 # Apply weights and bias then activate
 def forward_prop(input_layer, params):
     weights_1, bias_1, weights_2, bias_2 = params
+    a_1 = np.dot(weights_1, input_layer)
+    a_2 = a_1 + bias_1
+    a_3 = ReLU(a_2)
     pre_activation_1 = np.dot(weights_1, input_layer) + bias_1
     hidden_layer_1 = ReLU(pre_activation_1)
     pre_activation_2 = np.dot(weights_2, hidden_layer_1) + bias_2
@@ -96,9 +107,15 @@ def get_predictions(output_layer):
 def get_accuracy(predictions, truth):
     return np.sum(predictions == truth) / truth.size
 
-iterations=201
-for i in range(iterations):
+def test_accuracy(params, i, test_data, test_labels):
+    test_output_layer = forward_prop(test_data, params)[4]
+    predictions = get_predictions(test_output_layer)
+    print(f"predictions: {predictions[:10]} vs Truth:{test_labels[:10]}")
+    accuracy = get_accuracy(predictions, test_labels)
+    print(f"Iteration {i} has an avarage accuracy of {accuracy}")
 
+iterations=101
+for i in range(iterations):
     #Generate outputs using current parms
     nn = forward_prop(train_data, params)
     #Calculate the error and work backwards
@@ -106,21 +123,24 @@ for i in range(iterations):
     params = update_params(params, deltas)
 
     if i % 100 == 0:
-        test_output_layer = nn[4]
-        predictions = get_predictions(test_output_layer)
-        print(predictions[:10], train_labels[:10])
-        accuracy = get_accuracy(predictions, train_labels)
-        print(f"Iteration: {i} has accuracy {accuracy}")
+        # Checking accuracy changes using test data
+        test_accuracy(params, i, test_data, test_labels)
 
+#Same example image as before        
 test_image = train_images[idx]/255.
-print(np.unique(get_predictions(forward_prop(test_image.reshape(784,1), params)[4])))
-
+prediction = get_predictions(forward_prop(test_image.reshape(784,1), params)[4])
+print(f"Example image is predicted to be {prediction}")
 
 #Testing an image I drew in paint
 from PIL import Image
 img = Image.open('2.png').convert('L')
 my_image = np.abs(np.asarray(img).astype(np.float32) - 255)
+print("ascii and prediction of the image I drew, which is a 2")
 ascii_image(my_image, 2)
+prediction = get_predictions(forward_prop(my_image.reshape(784, 1), params)[4])
+print(prediction)
 
-my_data = my_image.reshape(784, 1)
-print(np.unique(get_predictions(forward_prop(my_data, params)[4])))
+#Saving params for future
+with open('params.pkl', 'wb') as fw:
+    params = pickle.dump(params, fw)
+

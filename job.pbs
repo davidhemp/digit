@@ -12,6 +12,7 @@ cd $PBS_O_WORKDIR
 
 echo "Running on: $HOSTNAME"
 echo "Allocated device: $CUDA_VISIBLE_DEVICES"
+export PYTHONUNBUFFERED=1
 
 ./test-gpu.py
 time ./main.py
