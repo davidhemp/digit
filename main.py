@@ -34,14 +34,14 @@ print(f"One Hot of image: {train_truth.T[idx]}")
 
 n_input = train_data.shape[0]
 n_samples = train_data.shape[1]
-n_hidden_2 = 32
-n_hidden_1 = 16
+n_hidden_1 = 128
+n_hidden_2 = 64
 n_output = 10
 
 #Activation functions
 
 def ReLU(x: np.ndarray) -> np.ndarray:
-    """Applies a very simple ReLU activation function to a numpy array"""
+    """Applies a very simple ReLU function to a numpy array"""
     return np.maximum(0, x)
 
 def ReLU_derivative(Z):
@@ -71,7 +71,7 @@ except FileNotFoundError:
 
 # Apply weights and bias then activate
 def forward_prop(input_layer, params):
-    weights_1, bias_1, weights_2, bias_2, weights_3, bais_3 = params
+    weights_1, bias_1, weights_2, bias_2, weights_3, bias_3 = params
     pre_activation_1 = np.dot(weights_1, input_layer) + bias_1
     hidden_layer_1 = ReLU(pre_activation_1)
     pre_activation_2 = np.dot(weights_2, hidden_layer_1) + bias_2
@@ -81,27 +81,32 @@ def forward_prop(input_layer, params):
     return [input_layer, pre_activation_1, hidden_layer_1, pre_activation_2, hidden_layer_2, pre_activation_3, output_layer]
 
 def back_prop(nn, params, n_samples, true_y):
-    weights_1, bias_1, weights_2, bias_2 = params
-    input_layer, pre_activation_1, hidden_layer_1, pre_activation_2, output_layer = nn
+    weights_1, bias_1, weights_2, bias_2, weights_3, bias_3 = params
+    input_layer, pre_activation_1, hidden_layer_1, pre_activation_2, hidden_layer_2, pre_activation_3, output_layer = nn
     #Detrivative of softmax simplifies to just the differance
-    pre_activation_2_error = output_layer - true_y
-    delta_weights_2 = np.dot(pre_activation_2_error, hidden_layer_1.T)/n_samples
-    delta_bias_2 = np.reshape(np.sum(pre_activation_2_error, 1)/n_samples, (n_output, 1))
+    pre_activation_3_error = output_layer - true_y
+    delta_weights_3 = np.dot(pre_activation_3_error, hidden_layer_2.T)/n_samples
+    delta_bias_3 = np.reshape(np.sum(pre_activation_3_error, 1)/n_samples, (n_output, 1))
     
-    pre_activation_error_1 = np.dot(weights_2.T, pre_activation_2_error) * ReLU_derivative(pre_activation_1)
-    delta_weights_1 = np.dot(pre_activation_error_1, input_layer.T) / n_samples
-    delta_bias_1 = np.reshape(np.sum(pre_activation_error_1, 1)/n_samples, (n_hidden, 1))
-    return [delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2]
+    pre_activation_2_error = np.dot(weights_3.T, pre_activation_3_error) * ReLU_derivative(pre_activation_2)
+    delta_weights_2 = np.dot(pre_activation_2_error, hidden_layer_1.T) / n_samples
+    delta_bias_2 = np.reshape(np.sum(pre_activation_2_error, 1)/n_samples, (n_hidden_2, 1))
 
-def update_params(params, deltas, alpha=0.1):
-    delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2 = deltas
-    weights_1, bias_1, weights_2, bias_2 = params
+    pre_activation_1_error = np.dot(weights_2.T, pre_activation_2_error) * ReLU_derivative(pre_activation_1)
+    delta_weights_1 = np.dot(pre_activation_1_error, input_layer.T) / n_samples
+    delta_bias_1 = np.reshape(np.sum(pre_activation_1_error, 1)/n_samples, (n_hidden_1, 1))
+    return [delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2, delta_weights_3, delta_bias_3]
+
+def update_params(params, deltas, alpha=0.05):
+    delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2, delta_weights_3, delta_bias_3 = deltas
+    weights_1, bias_1, weights_2, bias_2, weights_3, bias_3 = params
     weights_1 -= alpha * delta_weights_1
     weights_2 -= alpha * delta_weights_2
+    weights_3 -= alpha * delta_weights_3
     bias_1 -= alpha * delta_bias_1
     bias_2 -= alpha * delta_bias_2
-    
-    return [weights_1, bias_1, weights_2, bias_2]
+    bias_3 -= alpha * delta_bias_3
+    return [weights_1, bias_1, weights_2, bias_2, weights_3, bias_3]
 
 def get_predictions(output_layer):
     return np.argmax(output_layer, 0)
@@ -110,17 +115,14 @@ def get_accuracy(predictions, truth):
     return np.sum(predictions == truth) / truth.size
 
 def test_accuracy(params, i, test_data, test_labels):
-    test_output_layer = forward_prop(test_data, params)[4]
+    test_output_layer = forward_prop(test_data, params)[-1]
     predictions = get_predictions(test_output_layer)
     print(f"predictions: {predictions[:10]} vs Truth:{test_labels[:10]}")
     accuracy = get_accuracy(predictions, test_labels)
     print(f"Iteration {i} has an avarage accuracy of {accuracy}")
     print("----")
 
-nn = forward_prop(train_data, params)
-exit(0)
-
-iterations=1
+iterations=501
 print("---- Starting training ----")
 for i in range(iterations):
     #Generate outputs using current parms
@@ -135,7 +137,7 @@ for i in range(iterations):
 
 #Same example image as before        
 test_image = train_images[idx]/255.
-prediction = get_predictions(forward_prop(test_image.reshape(784,1), params)[4])
+prediction = get_predictions(forward_prop(test_image.reshape(784,1), params)[-1])
 print(f"Example image is predicted to be {prediction}")
 
 #Testing an image I drew in paint
@@ -144,7 +146,7 @@ img = Image.open('2.png').convert('L')
 my_image = np.abs(np.asarray(img).astype(np.float32) - 255)
 print("ascii and prediction of the image I drew")
 ascii_image(my_image, 2)
-prediction = get_predictions(forward_prop(my_image.reshape(784, 1), params)[4])
+prediction = get_predictions(forward_prop(my_image.reshape(784, 1), params)[-1])
 print(prediction)
 
 #Saving params for future
