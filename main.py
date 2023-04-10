@@ -34,7 +34,8 @@ print(f"One Hot of image: {train_truth.T[idx]}")
 
 n_input = train_data.shape[0]
 n_samples = train_data.shape[1]
-n_hidden = 128
+n_hidden_2 = 32
+n_hidden_1 = 16
 n_output = 10
 
 #Activation functions
@@ -57,25 +58,27 @@ try:
     with open('params.pkl', 'rb') as f:
         params = pickle.load(f)
 except FileNotFoundError:
-    weights_1 = np.random.rand(n_hidden, n_input) - 0.5 
-    bias_1 = np.random.rand(n_hidden, 1) - 0.5
+    weights_1 = np.random.rand(n_hidden_1, n_input) - 0.5 
+    bias_1 = np.random.rand(n_hidden_1, 1) - 0.5
 
-    weights_2 = np.random.randn(n_output, n_hidden) - 0.5
-    bias_2 = np.random.randn(n_output, 1) - 0.5
+    weights_2 = np.random.rand(n_hidden_2, n_hidden_1) - 0.5
+    bias_2 = np.random.rand(n_hidden_2, 1) - 0.5
+
+    weights_3 = np.random.randn(n_output, n_hidden_2) - 0.5
+    bias_3 = np.random.randn(n_output, 1) - 0.5
     #Putting values into a list just for management
-    params = [weights_1, bias_1, weights_2, bias_2]
+    params = [weights_1, bias_1, weights_2, bias_2, weights_3, bias_3]
 
 # Apply weights and bias then activate
 def forward_prop(input_layer, params):
-    weights_1, bias_1, weights_2, bias_2 = params
-    a_1 = np.dot(weights_1, input_layer)
-    a_2 = a_1 + bias_1
-    a_3 = ReLU(a_2)
+    weights_1, bias_1, weights_2, bias_2, weights_3, bais_3 = params
     pre_activation_1 = np.dot(weights_1, input_layer) + bias_1
     hidden_layer_1 = ReLU(pre_activation_1)
     pre_activation_2 = np.dot(weights_2, hidden_layer_1) + bias_2
-    output_layer = softmax(pre_activation_2)
-    return [input_layer, pre_activation_1, hidden_layer_1, pre_activation_2, output_layer]
+    hidden_layer_2 = ReLU(pre_activation_2)
+    pre_activation_3 = np.dot(weights_3, hidden_layer_2) + bias_3
+    output_layer = softmax(pre_activation_3)
+    return [input_layer, pre_activation_1, hidden_layer_1, pre_activation_2, hidden_layer_2, pre_activation_3, output_layer]
 
 def back_prop(nn, params, n_samples, true_y):
     weights_1, bias_1, weights_2, bias_2 = params
@@ -114,7 +117,10 @@ def test_accuracy(params, i, test_data, test_labels):
     print(f"Iteration {i} has an avarage accuracy of {accuracy}")
     print("----")
 
-iterations=501
+nn = forward_prop(train_data, params)
+exit(0)
+
+iterations=1
 print("---- Starting training ----")
 for i in range(iterations):
     #Generate outputs using current parms
