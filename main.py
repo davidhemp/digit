@@ -113,8 +113,10 @@ def test_accuracy(params, i, test_data, test_labels):
     print(f"predictions: {predictions[:10]} vs Truth:{test_labels[:10]}")
     accuracy = get_accuracy(predictions, test_labels)
     print(f"Iteration {i} has an avarage accuracy of {accuracy}")
+    print("----")
 
-iterations=101
+iterations=501
+print("---- Starting training ----")
 for i in range(iterations):
     #Generate outputs using current parms
     nn = forward_prop(train_data, params)
@@ -135,7 +137,7 @@ print(f"Example image is predicted to be {prediction}")
 from PIL import Image
 img = Image.open('2.png').convert('L')
 my_image = np.abs(np.asarray(img).astype(np.float32) - 255)
-print("ascii and prediction of the image I drew, which is a 2")
+print("ascii and prediction of the image I drew")
 ascii_image(my_image, 2)
 prediction = get_predictions(forward_prop(my_image.reshape(784, 1), params)[4])
 print(prediction)
