@@ -10,8 +10,4 @@ module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1 2> /dev/null
 
 cd $PBS_O_WORKDIR
 
-echo "Running on: $HOSTNAME"
-echo "Allocated device: $CUDA_VISIBLE_DEVICES"
-
-./test-gpu.py
 time ./main.py
