@@ -2,3 +2,4 @@ job-logs
 MNIST_data
 __pycache__
 params.pkl
+models

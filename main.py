@@ -57,10 +57,10 @@ try:
     with open('params.pkl', 'rb') as f:
         params = pickle.load(f)
 except FileNotFoundError:
-    weights_1 = np.random.rand(n_hidden, n_input) - 0.5
+    weights_1 = np.random.rand(n_hidden, n_input) - 0.5 
     bias_1 = np.random.rand(n_hidden, 1) - 0.5
 
-    weights_2 = np.random.randn(n_output, n_output) - 0.5
+    weights_2 = np.random.randn(n_output, n_hidden) - 0.5
     bias_2 = np.random.randn(n_output, 1) - 0.5
     #Putting values into a list just for management
     params = [weights_1, bias_1, weights_2, bias_2]
@@ -83,21 +83,20 @@ def back_prop(nn, params, n_samples, true_y):
     #Detrivative of softmax simplifies to just the differance
     pre_activation_2_error = output_layer - true_y
     delta_weights_2 = np.dot(pre_activation_2_error, hidden_layer_1.T)/n_samples
-    delta_bias_2 = np.sum(pre_activation_2_error, 1)/n_samples
+    delta_bias_2 = np.reshape(np.sum(pre_activation_2_error, 1)/n_samples, (n_output, 1))
     
-    pre_activation_error_1 = np.dot(weights_2, pre_activation_2_error) * ReLU_derivative(pre_activation_1)
+    pre_activation_error_1 = np.dot(weights_2.T, pre_activation_2_error) * ReLU_derivative(pre_activation_1)
     delta_weights_1 = np.dot(pre_activation_error_1, input_layer.T) / n_samples
-    delta_bias_1 = np.sum(pre_activation_error_1, 1)/n_samples
+    delta_bias_1 = np.reshape(np.sum(pre_activation_error_1, 1)/n_samples, (n_hidden, 1))
     return [delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2]
 
 def update_params(params, deltas, alpha=0.1):
     delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2 = deltas
     weights_1, bias_1, weights_2, bias_2 = params
-
     weights_1 -= alpha * delta_weights_1
     weights_2 -= alpha * delta_weights_2
-    bias_1 -= alpha * np.reshape(delta_bias_1, (10,1))
-    bias_2 -= alpha * np.reshape(delta_bias_2, (10,1))
+    bias_1 -= alpha * delta_bias_1
+    bias_2 -= alpha * delta_bias_2
     
     return [weights_1, bias_1, weights_2, bias_2]
 
