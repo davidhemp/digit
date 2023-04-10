@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -l walltime=1:0:0
-#PBS -lselect=1:ncpus=4:mem=24gb:ngpus=1:gpu_type=RTX6000
+#PBS -lselect=1:ncpus=128:mem=24gb:ngpus=1:gpu_type=RTX6000
 #PBS -q pqsystems
 #PBS -o ./job-logs/
 #PBS -j oe
@@ -14,4 +14,4 @@ echo "Running on: $HOSTNAME"
 echo "Allocated device: $CUDA_VISIBLE_DEVICES"
 
 ./test-gpu.py
-./main.py
+time ./main.py
