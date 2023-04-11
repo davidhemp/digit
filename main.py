@@ -6,21 +6,23 @@ import numpy as np
 
 from data_loader import load_images, load_labels, ascii_image
 
+Array = np.ndarray #Defining a type alias, see PEP 484
+
 #Activation functions
 
-def ReLU(x: np.ndarray) -> np.ndarray:
+def ReLU(x: Array) -> Array:
     """Applies a very simple ReLU function to a numpy array"""
     return np.maximum(0, x)
 
-def ReLU_derivative(Z):
+def ReLU_derivative(Z: Array) -> Array:
     return Z > 0
 
-def softmax(x):
+def softmax(x: Array) -> Array:
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)
 
-def init_params() -> Tuple[list, list]:
+def init_params() -> Tuple[list[Array], list[Array]]:
     """ Generate load model or init values for layers"""
     try:
         with open('params.pkl', 'rb') as f:
@@ -34,7 +36,7 @@ def init_params() -> Tuple[list, list]:
         #Putting values into a list just for management
     return weights, bias
 
-def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> Tuple[list[np.ndarray], list[np.ndarray]]:
+def forward_prop(input_layer: Array, weights: list, bias: list) -> Tuple[list[Array], list[Array]]:
     """Iterate through and activate layers."""
     layers = [input_layer]
     pre_activation_layers = []
@@ -51,7 +53,7 @@ def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> Tuple[li
     layers.append(output_layer)
     return layers, pre_activation_layers
 
-def back_prop(layers, pre_activation_layers, weights, bias, n_samples, true_y):
+def back_prop(layers: list[Array], pre_activation_layers: list[Array], weights: list[Array], bias: list[Array], n_samples: int, true_y: Array) -> Tuple[list[Array], list[Array]]:
     delta_weights = []
     delta_bias = []
     #Again the output_layer is treated a little differently
@@ -73,21 +75,21 @@ def back_prop(layers, pre_activation_layers, weights, bias, n_samples, true_y):
     #Flip the direction of the lists to the delta for the w1/b1 is first
     return delta_weights[::-1], delta_bias[::-1]
 
-def update_params(weights: list, bias: list, delta_weights: list, delta_bias: list, alpha: float) -> Tuple[list, list]:
+def update_params(weights: list[Array], bias: list[Array], delta_weights: list[Array], delta_bias: list[Array], alpha: float) -> Tuple[list[Array], list[Array]]:
     """ Update weights and bias applying an alpha value/learning value to moderate change"""
     for i in range(len(weights)):
         weights[i] -= alpha * delta_weights[i]
         bias[i] -= alpha * delta_bias[i]
     return weights, bias
 
-def get_predictions(data_to_test, weights, bias):
+def get_predictions(data_to_test: Array, weights: list[Array], bias: list[Array]) -> Array:
     layers, pre_activation_layers = forward_prop(data_to_test, weights, bias)
     return np.argmax(layers[-1], 0)
 
-def get_accuracy(predictions, truth):
+def get_accuracy(predictions: Array, truth: Array) -> float:
     return np.sum(predictions == truth) / truth.size
 
-def test_accuracy(weights, bias, i, data_to_test, test_labels):
+def test_accuracy(weights: list[Array], bias: list[Array], i: int, data_to_test: Array, test_labels: Array) -> None:
     predictions = get_predictions(data_to_test, weights, bias)
     print(f"predictions: {predictions[:10]} vs Truth:{test_labels[:10]}")
     accuracy = get_accuracy(predictions, test_labels)
