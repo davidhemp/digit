@@ -34,25 +34,24 @@ def init_params() -> Tuple[list, list]:
         #Putting values into a list just for management
     return weights, bias
 
-def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> list[np.ndarray]:
+def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> Tuple[list[np.ndarray], list[np.ndarray]]:
     """Iterate through and activate layers."""
     layers = [input_layer]
+    pre_activation_layers = []
     #Loop through hidden layers, leaving just output layer to calculate 
     for w, b in zip(weights[:-1], bias[:-1]):
         pre_activation = np.dot(w, layers[-1]) + b
-        layers.append(pre_activation)
+        pre_activation_layers.append(pre_activation)
         hidden_layer = ReLU(pre_activation)
         layers.append(hidden_layer)
     #Output layer calculation
     pre_activation = np.dot(weights[-1], layers[-1]) + bias[-1]
     output_layer = softmax(pre_activation)
-    layers.append(pre_activation)
+    pre_activation_layers.append(pre_activation)
     layers.append(output_layer)
-    return layers
+    return layers, pre_activation_layers
 
-def back_prop(nn, weights, bias, n_samples, true_y, n_output, n_hidden):
-    pre_activation_layers =  nn[1:-1:2]
-    layers = nn[0::2]
+def back_prop(layers, pre_activation_layers, weights, bias, n_samples, true_y):
     delta_weights = []
     delta_bias = []
     #Again the output_layer is treated a little differently
@@ -62,8 +61,9 @@ def back_prop(nn, weights, bias, n_samples, true_y, n_output, n_hidden):
     delta_b = np.reshape(np.sum(pre_activation_error, 1)/n_samples, (len(layers[-1]), 1))
     delta_weights.append(delta_w)
     delta_bias.append(delta_b)
-
-    for i in range(len(n_hidden), 0, -1):
+    
+    #-2 to remove input and outlayers
+    for i in range(len(layers) - 2, 0, -1):
         pre_activation_error = np.dot(weights[i].T, pre_activation_error) * ReLU_derivative(pre_activation_layers[i-1])
         delta_w = np.dot(pre_activation_error, layers[i-1].T)/n_samples
         delta_b = np.reshape(np.sum(pre_activation_error, 1)/n_samples, (len(layers[i]) , 1))
@@ -80,15 +80,15 @@ def update_params(weights: list, bias: list, delta_weights: list, delta_bias: li
         bias[i] -= alpha * delta_bias[i]
     return weights, bias
 
-def get_predictions(output_layer):
-    return np.argmax(output_layer, 0)
+def get_predictions(data_to_test, weights, bias):
+    layers, pre_activation_layers = forward_prop(data_to_test, weights, bias)
+    return np.argmax(layers[-1], 0)
 
 def get_accuracy(predictions, truth):
     return np.sum(predictions == truth) / truth.size
 
-def test_accuracy(weights, bias, i, test_data, test_labels):
-    test_output_layer = forward_prop(test_data, weights, bias)[-1]
-    predictions = get_predictions(test_output_layer)
+def test_accuracy(weights, bias, i, data_to_test, test_labels):
+    predictions = get_predictions(data_to_test, weights, bias)
     print(f"predictions: {predictions[:10]} vs Truth:{test_labels[:10]}")
     accuracy = get_accuracy(predictions, test_labels)
     print(f"Iteration {i} has an avarage accuracy of {accuracy}")
@@ -125,18 +125,17 @@ if __name__ == "__main__":
     n_input, n_samples = train_data.shape
     n_hidden_1 = 64
     n_hidden_2 = 32
-    n_hidden = [n_hidden_1, n_hidden_2]
     n_output = 10
     layers_topology = [n_input, n_hidden_1, n_hidden_2, n_output]
 
     weights, bias = init_params()
-    iterations=2
+    iterations=1
     print("---- Starting training ----")
     for i in range(iterations):
         #Generate outputs using current parms
-        nn = forward_prop(train_data, weights, bias)
+        layers, pre_activation_layers = forward_prop(train_data, weights, bias)
         #Calculate the error and work backwards
-        delta_weights, delta_bias = back_prop(nn, weights, bias, n_samples, train_truth, n_output, n_hidden)
+        delta_weights, delta_bias = back_prop(layers, pre_activation_layers, weights, bias, n_samples, train_truth)
         weights, bias = update_params(weights, bias, delta_weights, delta_bias, 0.05)
 
         if i % 100 == 0:
@@ -145,7 +144,8 @@ if __name__ == "__main__":
 
     #Same example image as before        
     test_image = train_images[idx]/255.
-    prediction = get_predictions(forward_prop(test_image.reshape(784,1), weights, bias)[-1])
+    data_to_test = test_image.reshape(784,1)
+    prediction = get_predictions(data_to_test, weights, bias)
     print(f"Example image is predicted to be {prediction}")
 
     #Testing an image I drew in paint
@@ -154,7 +154,8 @@ if __name__ == "__main__":
     my_image = np.abs(np.asarray(img).astype(np.float32) - 255)
     print("ascii and prediction of the image I drew")
     ascii_image(my_image, 2)
-    prediction = get_predictions(forward_prop(my_image.reshape(784, 1), weights, bias)[-1])
+    data_to_test = my_image.reshape(784, 1)
+    prediction = get_predictions(data_to_test, weights, bias)
     print(prediction)
 
     #Saving params for future
