@@ -50,31 +50,35 @@ def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> list[np.
     layers.append(output_layer)
     return layers
 
-def back_prop(nn, weights, bias, n_samples, true_y):
-    weights_1, weights_2, weights_3 = weights
-    bias_1, bias_2, bias_3 = bias
-    input_layer, pre_activation_1, hidden_layer_1, pre_activation_2, hidden_layer_2, pre_activation_3, output_layer = nn
+def back_prop(nn, weights, bias, n_samples, true_y, n_output, n_hidden):
+    pre_activation_layers =  nn[1:-1:2]
+    layers = nn[0::2]
+    delta_weights = []
+    delta_bias = []
+    #Again the output_layer is treated a little differently
     #Detrivative of softmax simplifies to just the differance
-    pre_activation_3_error = output_layer - true_y
-    delta_weights_3 = np.dot(pre_activation_3_error, hidden_layer_2.T)/n_samples
-    delta_bias_3 = np.reshape(np.sum(pre_activation_3_error, 1)/n_samples, (n_output, 1))
-    
-    pre_activation_2_error = np.dot(weights_3.T, pre_activation_3_error) * ReLU_derivative(pre_activation_2)
-    delta_weights_2 = np.dot(pre_activation_2_error, hidden_layer_1.T) / n_samples
-    delta_bias_2 = np.reshape(np.sum(pre_activation_2_error, 1)/n_samples, (n_hidden_2, 1))
+    pre_activation_error = layers[-1] - true_y
+    delta_w = np.dot(pre_activation_error, layers[-2].T)/n_samples
+    delta_b = np.reshape(np.sum(pre_activation_error, 1)/n_samples, (len(layers[-1]), 1))
+    delta_weights.append(delta_w)
+    delta_bias.append(delta_b)
 
-    pre_activation_1_error = np.dot(weights_2.T, pre_activation_2_error) * ReLU_derivative(pre_activation_1)
-    delta_weights_1 = np.dot(pre_activation_1_error, input_layer.T) / n_samples
-    delta_bias_1 = np.reshape(np.sum(pre_activation_1_error, 1)/n_samples, (n_hidden_1, 1))
-    return [[delta_weights_1, delta_weights_2, delta_weights_3], [delta_bias_1, delta_bias_2, delta_bias_3]]
+    for i in range(len(n_hidden), 0, -1):
+        pre_activation_error = np.dot(weights[i].T, pre_activation_error) * ReLU_derivative(pre_activation_layers[i-1])
+        delta_w = np.dot(pre_activation_error, layers[i-1].T)/n_samples
+        delta_b = np.reshape(np.sum(pre_activation_error, 1)/n_samples, (len(layers[i]) , 1))
+        delta_weights.append(delta_w)
+        delta_bias.append(delta_b)
 
-def update_params(weights: list, bias: list, deltas: list, alpha=0.05) -> Tuple[list, list]:
+    #Flip the direction of the lists to the delta for the w1/b1 is first
+    return delta_weights[::-1], delta_bias[::-1]
+
+def update_params(weights: list, bias: list, delta_weights: list, delta_bias: list, alpha: float) -> Tuple[list, list]:
     """ Update weights and bias applying an alpha value/learning value to moderate change"""
-    delta_weights, delta_bias = deltas
     for i in range(len(weights)):
         weights[i] -= alpha * delta_weights[i]
         bias[i] -= alpha * delta_bias[i]
-    return weights, bias 
+    return weights, bias
 
 def get_predictions(output_layer):
     return np.argmax(output_layer, 0)
@@ -121,6 +125,7 @@ if __name__ == "__main__":
     n_input, n_samples = train_data.shape
     n_hidden_1 = 64
     n_hidden_2 = 32
+    n_hidden = [n_hidden_1, n_hidden_2]
     n_output = 10
     layers_topology = [n_input, n_hidden_1, n_hidden_2, n_output]
 
@@ -131,8 +136,8 @@ if __name__ == "__main__":
         #Generate outputs using current parms
         nn = forward_prop(train_data, weights, bias)
         #Calculate the error and work backwards
-        deltas = back_prop(nn, weights, bias, n_samples, train_truth)
-        weights, bias = update_params(weights, bias, deltas)
+        delta_weights, delta_bias = back_prop(nn, weights, bias, n_samples, train_truth, n_output, n_hidden)
+        weights, bias = update_params(weights, bias, delta_weights, delta_bias, 0.05)
 
         if i % 100 == 0:
             # Checking accuracy changes using test data
