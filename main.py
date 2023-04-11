@@ -125,13 +125,12 @@ if __name__ == "__main__":
     #Define NN layers
 
     n_input, n_samples = train_data.shape
-    n_hidden_1 = 64
-    n_hidden_2 = 32
+    n_hidden = [64, 32, 32] # Add the size for the desired number of neurons per layer
     n_output = 10
-    layers_topology = [n_input, n_hidden_1, n_hidden_2, n_output]
+    layers_topology = [n_input, *n_hidden, n_output]
 
     weights, bias = init_params()
-    iterations=1
+    iterations=501
     print("---- Starting training ----")
     for i in range(iterations):
         #Generate outputs using current parms
