@@ -1,4 +1,5 @@
 #!/bin/env python3
+from typing import Tuple # Not needing in >3.9
 import gzip
 import pickle
 import numpy as np
@@ -19,7 +20,7 @@ def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)
 
-def init_params() -> list:
+def init_params() -> Tuple[list, list]:
     """ Generate load model or init values for layers"""
     try:
         with open('params.pkl', 'rb') as f:
@@ -33,7 +34,7 @@ def init_params() -> list:
         #Putting values into a list just for management
     return weights, bias
 
-def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> list:
+def forward_prop(input_layer: np.ndarray, weights: list, bias: list) -> list[np.ndarray]:
     """Iterate through and activate layers."""
     layers = [input_layer]
     #Loop through hidden layers, leaving just output layer to calculate 
@@ -65,19 +66,15 @@ def back_prop(nn, weights, bias, n_samples, true_y):
     pre_activation_1_error = np.dot(weights_2.T, pre_activation_2_error) * ReLU_derivative(pre_activation_1)
     delta_weights_1 = np.dot(pre_activation_1_error, input_layer.T) / n_samples
     delta_bias_1 = np.reshape(np.sum(pre_activation_1_error, 1)/n_samples, (n_hidden_1, 1))
-    return [delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2, delta_weights_3, delta_bias_3]
+    return [[delta_weights_1, delta_weights_2, delta_weights_3], [delta_bias_1, delta_bias_2, delta_bias_3]]
 
-def update_params(weights, bias, deltas, alpha=0.05):
-    delta_weights_1, delta_bias_1, delta_weights_2, delta_bias_2, delta_weights_3, delta_bias_3 = deltas
-    weights_1, weights_2, weights_3 = weights
-    bias_1, bias_2, bias_3 = bias
-    weights_1 -= alpha * delta_weights_1
-    weights_2 -= alpha * delta_weights_2
-    weights_3 -= alpha * delta_weights_3
-    bias_1 -= alpha * delta_bias_1
-    bias_2 -= alpha * delta_bias_2
-    bias_3 -= alpha * delta_bias_3
-    return [[weights_1, weights_2, weights_3], [bias_1, bias_2, bias_3]]
+def update_params(weights: list, bias: list, deltas: list, alpha=0.05) -> Tuple[list, list]:
+    """ Update weights and bias applying an alpha value/learning value to moderate change"""
+    delta_weights, delta_bias = deltas
+    for i in range(len(weights)):
+        weights[i] -= alpha * delta_weights[i]
+        bias[i] -= alpha * delta_bias[i]
+    return weights, bias 
 
 def get_predictions(output_layer):
     return np.argmax(output_layer, 0)
@@ -128,7 +125,7 @@ if __name__ == "__main__":
     layers_topology = [n_input, n_hidden_1, n_hidden_2, n_output]
 
     weights, bias = init_params()
-    iterations=501
+    iterations=2
     print("---- Starting training ----")
     for i in range(iterations):
         #Generate outputs using current parms
